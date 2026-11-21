@@ -1,0 +1,10 @@
+{
+  "rules": {
+    "liga678": {
+      "data": {
+        ".read": true,
+        ".write": "auth != null && auth.uid === 'FMoHej1HEbZQk0KNppdBncUQrPp1'"
+      }
+    }
+  }
+}

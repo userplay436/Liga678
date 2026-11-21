@@ -1,0 +1,1 @@
+Liga 678 Hosting bundle\n\nindex.html: dashboard with Firebase Auth login and RTDB integration.\nfirebase.json: Firebase Hosting config.\ndatabase.rules.json: database rules.\n\nDeploy from this folder using Firebase CLI: firebase deploy --only hosting\nRules publish separately in Realtime Database Rules or deploy with firebase deploy --only database.\n
