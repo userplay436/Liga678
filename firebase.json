@@ -1,1 +1,18 @@
-{"hosting":{"public":".","ignore":["firebase.json",".*","node_modules/**"],"cleanUrls":false}}
+
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".*",
+      "node_modules/**",
+      "README.md",
+      "README.txt",
+      "Rules_Umpire_SkorLangsung_DRAFT.json"
+    ],
+    "cleanUrls": false
+  },
+  "database": {
+    "rules": "Rules_Umpire_SkorLangsung_DRAFT.json"
+  }
+}
