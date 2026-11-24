@@ -111,8 +111,8 @@ load();window.getLigaState=()=>state;window.cloudApply=cloudApply;if(isTVMode())
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, get, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-const firebaseConfig={apiKey:"AIzaSyBmLtOr2sw3691Flev9bxoNpfPGu_XYUYM",authDomain:"liga-678.firebaseapp.com",databaseURL:"https://liga-678-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"liga-678",storageBucket:"liga-678.firebasestorage.app",messagingSenderId:"132105881309",appId:"1:132105881309:web:484e7db9de4ad411237d34",measurementId:"G-5FKGKCMNDS"};
-try{
+ const firebaseConfig = { apiKey: "AIzaSyDfJ2Ke-D44h1q2MWrheQCy3mtmpL2wVao", authDomain: "turnamen-678.firebaseapp.com", databaseURL: "https://turnamen-678-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "turnamen-678", storageBucket: "turnamen-678.firebasestorage.app", messagingSenderId: "258532099973", appId: "1:258532099973:web:1b1f8c10d5bead875e26ec" };
+ try{
  const app=initializeApp(firebaseConfig),db=getDatabase(app),auth=getAuth(app),dataRef=ref(db,'liga678/data'),wallRef=ref(db,'liga678/wallpaper');
  let suppress=false,adminUid="FMoHej1HEbZQk0KNppdBncUQrPp1";
  window.cloudWallpaperSave=async cfg=>{if(auth.currentUser?.uid!==adminUid){document.getElementById('cloudstatus').textContent='Background lokal berubah; login admin untuk sinkronisasi';return}try{await set(wallRef,{image:cfg.image,opacity:cfg.opacity,updatedAt:Date.now(),updatedBy:adminUid});document.getElementById('cloudstatus').textContent='Background TV dan perangkat tersinkron'}catch(e){document.getElementById('cloudstatus').textContent='Gagal sinkron background: '+e.message}};
