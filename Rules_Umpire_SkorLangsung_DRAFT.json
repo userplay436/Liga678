@@ -1,0 +1,19 @@
+{
+  "rules": {
+    "liga678": {
+      "data": {
+        ".read": true,
+        ".write": "auth != null && auth.uid === 'FMoHej1HEbZQk0KNppdBncUQrPp1'",
+        "matches": {
+          "$matchIndex": {
+            ".write": "auth != null && (auth.uid === 'FMoHej1HEbZQk0KNppdBncUQrPp1' || auth.uid === 'GANTI_UID_UMPIRE_1' || auth.uid === 'GANTI_UID_UMPIRE_2')"
+          }
+        }
+      },
+      "wallpaper": {
+        ".read": true,
+        ".write": "auth != null && auth.uid === 'FMoHej1HEbZQk0KNppdBncUQrPp1'"
+      }
+    }
+  }
+}
