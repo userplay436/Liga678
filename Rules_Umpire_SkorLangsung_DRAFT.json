@@ -6,7 +6,7 @@
         ".write": "auth != null && auth.uid === 'FMoHej1HEbZQk0KNppdBncUQrPp1'",
         "matches": {
           "$matchIndex": {
-            ".write": "auth != null && (auth.uid === 'FMoHej1HEbZQk0KNppdBncUQrPp1' || auth.uid === 'GANTI_UID_UMPIRE_1' || auth.uid === 'GANTI_UID_UMPIRE_2')"
+            ".write": "auth != null && (auth.uid === 'FMoHej1HEbZQk0KNppdBncUQrPp1' || auth.uid === 'lAhka1Lj4oWFO9G29nJhpt0KX2p2' || auth.uid === 'mLjN2jYXW5U6jwuOVF3BWNSC6gG2')"
           }
         }
       },
