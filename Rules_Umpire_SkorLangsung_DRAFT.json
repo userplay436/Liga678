@@ -1,3 +1,4 @@
+
 {
   "rules": {
     "liga678": {
@@ -6,8 +7,14 @@
         ".write": "auth != null && auth.uid === 'HT1kEOfLfxUgE4VTlY8MVZ0HAsw1'",
         "matches": {
           "$matchIndex": {
-            ".write": "auth != null && (auth.uid === 'HT1kEOfLfxUgE4VTlY8MVZ0HAsw1' || auth.uid === '422LBJJWwLVf9FIb8ROlMqIxw2r1' || auth.uid === 'D0s1j7T2UmToDwLeujumZTSdnwz1D' || auth.uid === 'BiTktbHQyGXCAtWB7Re3FpkFKO22')"
+            ".write": "auth != null && (auth.uid === 'HT1kEOfLfxUgE4VTlY8MVZ0HAsw1' || auth.uid === '422LBJJWwLVf9FIb8ROlMqIxw2r1' || auth.uid === 'D0s1j7T2UmToDwLeujumZTSdnwz1' || auth.uid === 'BiTktbHQyGXCAtWB7Re3FpkFKO22')"
           }
+        }
+      },
+      "scoreHistory": {
+        ".read": "auth != null && auth.uid === 'HT1kEOfLfxUgE4VTlY8MVZ0HAsw1'",
+        "$historyId": {
+          ".write": "auth != null && !data.exists() && (auth.uid === 'HT1kEOfLfxUgE4VTlY8MVZ0HAsw1' || auth.uid === '422LBJJWwLVf9FIb8ROlMqIxw2r1' || auth.uid === 'D0s1j7T2UmToDwLeujumZTSdnwz1' || auth.uid === 'BiTktbHQyGXCAtWB7Re3FpkFKO22') && newData.child('updatedBy').val() === auth.uid"
         }
       },
       "wallpaper": {
