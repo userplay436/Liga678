@@ -137,20 +137,17 @@ function historyPage(){
         <div class="muted">Skor sebelumnya</div>
         <div>${h(oldScore)}</div>
         <div class="muted" style="margin-top:10px">Skor terbaru</div>
-        <b>${h(newScore)}</b>
-        <div class="matchmeta" style="margin-top:12px">
-          ${h(date)}<br>
-          Pelaksana: ${h(
-  x.updatedByRole === 'admin'
-    ? 'ADMIN'
-    : 'UMPIRE'
-)}<br>
-Email akun: ${h(x.updatedByEmail || 'Email tidak tersedia')}<br>
-UID: ${h(x.updatedBy || '-')}
-          Akun: ${h(x.updatedByEmail||x.updatedBy||'-')}
-        </div>
-      </div>`;
-    }).join('')}
+        <b>${h(newScore)}</b>        
+<div class="matchmeta" style="margin-top:12px">
+  ${h(date)}<br>
+  Pelaksana: ${h(
+    x.updatedByRole === 'admin'
+      ? 'ADMIN'
+      : 'UMPIRE'
+  )}<br>
+  Email akun: ${h(x.updatedByEmail || 'Email tidak tersedia')}<br>
+  UID: ${h(x.updatedBy || '-')}
+</div>
   </div>`;
 }
 
