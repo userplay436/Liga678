@@ -489,10 +489,13 @@ if(new URLSearchParams(location.search).get('view')==='umpire'){
 
     alert('Skor resmi berhasil disimpan. Riwayat perubahan juga tercatat.');
   }catch(e){
-    alert('Gagal menyimpan skor dan riwayat: '+e.message);
-  }
-};
-
+  console.error('DETAIL FIREBASE:', {
+    code: e.code,
+    message: e.message,
+    uid: user?.uid
+  });
+  alert('Gagal menyimpan: '+e.code+' | '+e.message);
+}
 // LOGIN UMPIRE
 $('uLoginBtn').onclick=async()=>{
   const email=$('uEmail').value.trim();
@@ -534,7 +537,7 @@ onAuthStateChanged(auth,u=>{
     $('uLogin').style.display='none';
     $('uPanel').style.display='block';
     $('uLogout').style.display='inline-block';
-    $('uStatus').textContent='Login sebagai: '+(u.email||'Umpire');
+    $('uStatus').textContent='Login sebagai: '+(u.email||'Umpire')+' | UID: '+u.uid;
     populate();
   }else{
     $('uLogin').style.display='block';
