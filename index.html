@@ -38,7 +38,10 @@ let inter=[];for(let r=1;r<=17;r++){inter.push(...matches.filter(m=>m.cat==='A'&
 let dates=[];for(let d=new Date(2026,11,5);d<=new Date(2027,0,31);d.setDate(d.getDate()+1))if(d.getDay()===0||d.getDay()===6)dates.push(new Date(d));
 let index=0;dates.forEach((dt,di)=>{let count=di<3?13:12;for(let k=0;k<count;k++){let m=inter[index];if(!m)continue;let mins=k*240/count,st=new Date(dt);st.setHours(20,Math.floor(mins),0,0);let en=new Date(st.getTime()+240/count*60000);m.date=dt.toISOString().slice(0,10);m.start=st.toTimeString().slice(0,5);m.end=en.toTimeString().slice(0,5);m.id='M'+String(index+1).padStart(3,'0');index++;}});return {players,matches:inter,created:new Date().toISOString(),tvBlocked:false}}
 function load(){try{let x=JSON.parse(localStorage.getItem(STORAGE));state=x&&x.players&&x.matches?x:makeState()}catch(e){state=makeState()}if(typeof state.tvBlocked==='undefined')state.tvBlocked=false;save()}
-function save(){localStorage.setItem(STORAGE,JSON.stringify(state));if(window.cloudSave)window.cloudSave(state)}
+function save(cloud=true){
+  localStorage.setItem(STORAGE,JSON.stringify(state));
+  if(cloud && window.cloudSave) window.cloudSave(state);
+}
 function cloudApply(x){state=x;if(typeof state.tvBlocked==='undefined')state.tvBlocked=false;localStorage.setItem(STORAGE,JSON.stringify(state));if(isTVMode())renderTVPublic();else render()}
 function player(id){return state.players.find(p=>p.id===id)||{name:id}}
 function outcome(m){let a=0,b=0;for(let s of m.sets||[]){if(s.a>s.b)a++;else if(s.b>s.a)b++}return a>=3?{winner:m.p1,wa:a,wb:b}:b>=3?{winner:m.p2,wa:a,wb:b}:null}
