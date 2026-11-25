@@ -264,7 +264,17 @@ function setWallpaperFile(e){let f=e.target.files?.[0];if(!f)return;if(!f.type.s
 function resetWallpaper(){wallCfg={image:WALL_DEFAULT,opacity:.16};applyWallpaper();persistWall();render()}
 applyWallpaper();window.setWallpaperFile=setWallpaperFile;window.setWallOpacity=setWallOpacity;window.resetWallpaper=resetWallpaper;window.exportScheduleExcel=exportScheduleExcel;window.exportSchedulePDF=exportSchedulePDF;window.exportResultsExcel=exportResultsExcel;window.exportResultsPDF=exportResultsPDF;
 function importData(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x.players||!x.matches)throw Error();state=x;save();page(current);alert('Backup berhasil dipulihkan')}catch(err){alert('File backup tidak valid')}};r.readAsText(f)}
-load();window.getLigaState=()=>state;window.cloudApply=cloudApply;if(isTVMode()){nav();renderTVPublic()}else{nav();render();}
+window.getLigaState=()=>state;
+window.cloudApply=cloudApply;
+load();
+
+if(isTVMode()){
+  nav();
+  renderTVPublic();
+}else{
+  nav();
+  render();
+}
 </script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
