@@ -196,6 +196,10 @@ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from
  try{
  const app=initializeApp(firebaseConfig),db=getDatabase(app),auth=getAuth(app),dataRef=ref(db,'liga678/data'),wallRef=ref(db,'liga678/wallpaper');
  let suppress=false,adminUid="HT1kEOfLfxUgE4VTlY8MVZ0HAsw1";
+let stopScoreHistory=null;
+
+window.scoreHistoryData={};
+window.adminHistoryAccess=false;
 window.cloudScoreUpdate = async (matchId, oldSets, newSets, newStatus, action) => {
   const user = auth.currentUser;
 
@@ -245,7 +249,54 @@ window.cloudScoreUpdate = async (matchId, oldSets, newSets, newStatus, action) =
  window.cloudSave=async data=>{if(suppress)return;if(!auth.currentUser||auth.currentUser.uid!==adminUid){document.getElementById('cloudstatus').textContent='Perubahan lokal saja · admin belum login';return;}try{await set(dataRef,data);document.getElementById('cloudstatus').textContent='Online · data tersimpan'}catch(e){document.getElementById('cloudstatus').textContent='Gagal menyimpan: '+e.message}};
  const snap=await get(dataRef);if(snap.exists()){window.cloudApply(snap.val());document.getElementById('cloudstatus').textContent='Data cloud dimuat'}else document.getElementById('cloudstatus').textContent='Database kosong · login admin untuk mengunggah data awal';
  onValue(dataRef,s=>{if(s.exists()){suppress=true;window.cloudApply(s.val());suppress=false;document.getElementById('cloudstatus').textContent='Online · tersinkron'}},e=>document.getElementById('cloudstatus').textContent='Koneksi error: '+e.message);
- onAuthStateChanged(auth,async user=>{if(user){document.getElementById('authstatus').textContent=user.uid===adminUid?'Admin terverifikasi':'Login bukan admin';if(user.uid===adminUid){const check=await get(dataRef);if(!check.exists())await set(dataRef,window.getLigaState());}}else{document.getElementById('authstatus').textContent='Belum login';}});
+ onAuthStateChanged(auth,async user=>{
+  if(user){
+    document.getElementById('authstatus').textContent=
+      user.uid===adminUid?'Admin terverifikasi':'Login bukan admin';
+
+    if(user.uid===adminUid){
+      const check=await get(dataRef);
+      if(!check.exists()){
+        await set(dataRef,window.getLigaState());
+      }
+
+      window.adminHistoryAccess=true;
+
+      if(stopScoreHistory)stopScoreHistory();
+
+      stopScoreHistory=onValue(
+        ref(db,'liga678/scoreHistory'),
+        snap=>{
+          window.scoreHistoryData=snap.exists()?snap.val():{};
+
+          if(document.getElementById('historyList')){
+            window.render();
+          }
+        },
+        e=>console.error('Riwayat skor:',e)
+      );
+
+    }else{
+      window.adminHistoryAccess=false;
+      if(stopScoreHistory){
+        stopScoreHistory();
+        stopScoreHistory=null;
+      }
+    }
+
+  }else{
+    document.getElementById('authstatus').textContent='Belum login';
+
+    window.adminHistoryAccess=false;
+
+    if(stopScoreHistory){
+      stopScoreHistory();
+      stopScoreHistory=null;
+    }
+
+    window.scoreHistoryData={};
+  }
+});
 }catch(e){document.getElementById('cloudstatus').textContent='Firebase error: '+e.message}
 </script>\n<!-- UMPIRER MODULE: separate URL view (?view=umpire) -->
 <div id="umpireRoot" style="display:none;min-height:100vh;padding:20px;max-width:850px;margin:auto">
