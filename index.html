@@ -91,7 +91,7 @@ function historyPage(){
   if(!window.adminHistoryAccess){
     return `<div class="card">
       <h2>Riwayat Perubahan Skor</h2>
-      <div class="empty">Silakan login menggunakan akun Admin untuk melihat riwayat.</div>
+      <div class="empty">Silakan login menggunakan akun Admin.</div>
     </div>`;
   }
 
@@ -111,14 +111,24 @@ function historyPage(){
       <h2>Riwayat Perubahan Skor</h2>
       <span class="pill">${entries.length} catatan</span>
     </div>
+
     ${entries.map(x=>{
       const m=state.matches.find(v=>v.id===x.matchId);
+
       const oldScore=(x.oldSets||[])
-        .map((s,i)=>`Set ${i+1}: ${s.a}-${s.b}`).join(' · ')||'Belum ada skor';
+        .map((s,i)=>`Set ${i+1}: ${s.a}-${s.b}`)
+        .join(' · ') || 'Belum ada skor';
+
       const newScore=(x.newSets||[])
-        .map((s,i)=>`Set ${i+1}: ${s.a}-${s.b}`).join(' · ')||'Skor direset';
-      const action=x.action==='reset'?'Reset skor':
-        x.action==='umpire_submit'?'Input oleh Umpire':'Input / perubahan skor';
+        .map((s,i)=>`Set ${i+1}: ${s.a}-${s.b}`)
+        .join(' · ') || 'Skor direset';
+
+      const action=x.action==='reset'
+        ?'Reset skor'
+        :x.action==='umpire_submit'
+          ?'Input oleh Umpire'
+          :'Input / perubahan skor';
+
       const date=x.updatedAt
         ?new Date(Number(x.updatedAt)).toLocaleString('id-ID')
         :'Waktu tidak tersedia';
@@ -134,18 +144,25 @@ function historyPage(){
           </div>
           <span class="pill">${h(action)}</span>
         </div>
+
         <div class="muted">Skor sebelumnya</div>
         <div>${h(oldScore)}</div>
+
         <div class="muted" style="margin-top:10px">Skor terbaru</div>
-        <b>${h(newScore)}</b>        
-<div class="matchmeta" style="margin-top:12px">
-  ${h(date)}<br>
-  Pelaksana: ${h(x.updatedByRole||'-')}<br>
-Akun: ${h(x.updatedByEmail||x.updatedBy||'-')}
-</div>
+        <b>${h(newScore)}</b>
+
+        <div class="matchmeta" style="margin-top:12px">
+          ${h(date)}<br>
+          Pelaksana: ${h(
+            x.updatedByRole==='admin'?'ADMIN':'UMPIRE'
+          )}<br>
+          Email akun: ${h(x.updatedByEmail||'Email tidak tersedia')}<br>
+          UID: ${h(x.updatedBy||'-')}
+        </div>
+      </div>`;
+    }).join('')}
   </div>`;
 }
-
 function scorePage(){let filter=document.getElementById('scorecat')?.value||'all',status=document.getElementById('scorestatus')?.value||'all',list=state.matches.filter(m=>(filter==='all'||m.cat===filter)&&(status==='all'||(status==='done'?!!outcome(m):!outcome(m))));return `<div class="sectionhead"><h2>Input Skor per Set</h2><div class="row"><button onclick="exportResultsExcel()">Export Hasil Excel</button><button onclick="exportResultsPDF()">Export Hasil PDF</button><select id="scorecat" onchange="render()"><option value="all">Semua kategori</option><option value="A">Kategori A</option><option value="B">Kategori B</option></select><select id="scorestatus" onchange="render()"><option value="all">Semua status</option><option value="pending">Belum selesai</option><option value="done">Selesai</option></select></div></div><div class="muted">Isi skor set, lalu klik Simpan. Pemenang adalah pemain pertama yang mencapai 3 set. Gunakan maksimal 5 set.</div>${list.map(m=>scoreCard(m)).join('')}` }
 function scoreCard(m){let sets=m.sets||[];return `<div class="card"><div class="sectionhead"><div><b>${m.id}</b> · ${m.cat} · ${m.date} ${m.start||''}<div class="matchmeta">Round ${m.round}</div></div>${outcome(m)?'<span class="pill done">Selesai</span>':'<span class="pill">Belum selesai</span>'}</div><div class="grid"><div><b>${h(player(m.p1).name)}</b><div class="muted">${m.p1}</div></div><div><b>${h(player(m.p2).name)}</b><div class="muted">${m.p2}</div></div></div><div class="row" style="margin-top:12px;align-items:flex-start"><div class="muted">Set:</div>${[0,1,2,3,4].map(i=>`<div class="scoreinputs"><input type="number" min="0" max="99" id="${m.id}_a${i}" value="${sets[i]?.a??''}" placeholder="0"><span>:</span><input type="number" min="0" max="99" id="${m.id}_b${i}" value="${sets[i]?.b??''}" placeholder="0"></div>`).join('')}</div><div class="row" style="margin-top:12px"><button class="primary" onclick="saveScore('${m.id}')">Simpan skor</button><button class="danger small" onclick="resetScore('${m.id}')">Reset</button>${outcome(m)?`<span class="pill done">Set ${outcome(m).wa}–${outcome(m).wb}</span>`:''}</div></div>`}
 
