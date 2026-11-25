@@ -109,7 +109,7 @@ load();window.getLigaState=()=>state;window.cloudApply=cloudApply;if(isTVMode())
 </script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, get, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, get, set, onValue, push, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
  const firebaseConfig = { apiKey: "AIzaSyDfJ2Ke-D44h1q2MWrheQCy3mtmpL2wVao", authDomain: "turnamen-678.firebaseapp.com", databaseURL: "https://turnamen-678-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "turnamen-678", storageBucket: "turnamen-678.firebasestorage.app", messagingSenderId: "258532099973", appId: "1:258532099973:web:1b1f8c10d5bead875e26ec" };
  try{
