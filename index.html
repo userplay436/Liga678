@@ -53,7 +53,21 @@ let current='dashboard';
 function isTVMode(){return new URLSearchParams(location.search).get('view')==='tv'}
 function nav(){if(isTVMode()){document.getElementById('tvclosebtn').style.display='none';document.getElementById('nav').style.display='none';document.querySelector('header').style.display='none';document.querySelector('main').style.display='none';document.querySelector('footer').style.display='none';document.getElementById('tv').classList.add('show');renderTVPublic();return}let items=['dashboard','peserta','jadwal','skor','riwayat','klasemen','statistik'];document.getElementById('nav').innerHTML=items.map(x=>`<button class="tab ${current===x?'active':''}" onclick="page('${x}')">${({dashboard:'Dashboard',peserta:'Peserta',jadwal:'Jadwal',skor:'Input Skor',klasemen:'Klasemen',riwayat:'Riwayat Skor',statistik:'Statistik'})[x]}</button>`).join('')+`<button class="tab right" onclick="openTV()">TV / OBS</button>`}
 function page(x){current=x;nav();render()}
-function render(){let el=document.getElementById('app');if(current==='dashboard')el.innerHTML=dashboard();if(current==='peserta')el.innerHTML=participantPage();if(current==='jadwal')el.innerHTML=schedulePage();if(current==='skor')el.innerHTML=scorePage();if(current==='klasemen')el.innerHTML=standPage();if(current==='statistik')el.innerHTML=statsPage();if(current==='statistik')drawChart()}
+
+function render(){
+  let el=document.getElementById('app');
+
+  if(current==='dashboard')el.innerHTML=dashboard();
+  if(current==='peserta')el.innerHTML=participantPage();
+  if(current==='jadwal')el.innerHTML=schedulePage();
+  if(current==='skor')el.innerHTML=scorePage();
+  if(current==='riwayat')el.innerHTML=historyPage();
+  if(current==='klasemen')el.innerHTML=standPage();
+  if(current==='statistik'){
+    el.innerHTML=statsPage();
+    drawChart();
+  }
+}
 function backgroundPanel(){return `<div class="card"><h2>Pengaturan Background</h2><p class="muted">Ganti gambar/logo latar untuk dashboard, TV/OBS, dan halaman umpire. Intensitas mengatur transparansi gambar.</p><div class="row"><label>Gambar latar <input type="file" id="wallFile" accept="image/*" onchange="setWallpaperFile(event)"></label><label>Intensitas <input id="wallOpacity" type="range" min="0" max="100" value="${Math.round((wallCfg.opacity??.16)*100)}" oninput="setWallOpacity(this.value)"></label><span id="wallPct">${Math.round((wallCfg.opacity??.16)*100)}%</span><button onclick="resetWallpaper()">Reset logo awal</button></div></div>`}
 function dashboard(){let blockCard=`<div class="card"><div class="sectionhead"><h2>Kontrol Tampilan TV Peserta</h2><span class="pill">${state.tvBlocked?'DIBLOKIR':'AKTIF'}</span></div><button class="${state.tvBlocked?'primary':'danger'}" onclick="toggleTVBlock()">${state.tvBlocked?'BUKA BLOKIR TV':'BLOKIR TV PESERTA'}</button><div class="muted">Mengontrol tampilan publik TV. Pengaturan ini tidak mengubah hasil/jadwal.</div></div>`;let finished=state.matches.filter(m=>outcome(m)).length,live=state.matches.filter(m=>m.status==='live').length,next=state.matches.filter(m=>!outcome(m)).sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start)).slice(0,6);return backgroundPanel()+blockCard+`<div class="sectionhead"><h2>Dashboard Liga</h2><span class="pill">Satu meja · 3 poin kemenangan</span></div><div class="grid"><div class="card"><div class="label">PESERTA KATEGORI A</div><div class="metric">${state.players.filter(p=>p.cat==='A').length}</div></div><div class="card"><div class="label">PESERTA KATEGORI B</div><div class="metric">${state.players.filter(p=>p.cat==='B').length}</div></div><div class="card"><div class="label">TOTAL MATCH</div><div class="metric">${state.matches.length}</div></div><div class="card"><div class="label">SELESAI</div><div class="metric">${finished}</div><div class="muted">${Math.round(finished/Math.max(1,state.matches.length)*100)}% kompetisi</div></div></div><div class="grid"><div class="card"><div class="sectionhead"><h2>Klasemen A</h2><button onclick="page('klasemen')">Detail</button></div>${miniStand('A')}</div><div class="card"><div class="sectionhead"><h2>Klasemen B</h2><button onclick="page('klasemen')">Detail</button></div>${miniStand('B')}</div></div><div class="card"><div class="sectionhead"><h2>Jadwal mendatang</h2><button onclick="page('jadwal')">Semua jadwal</button></div>${next.map(m=>matchLine(m)).join('')||'<div class="empty">Tidak ada jadwal tersisa</div>'}</div>`}
 function miniStand(c){let rows=standings(c).slice(0,5);return `<div class="tablewrap"><table><thead><tr><th>#</th><th>Pemain</th><th>M</th><th>Poin</th></tr></thead><tbody>${rows.map((p,i)=>`<tr><td>${i+1}</td><td>${h(p.name)}</td><td>${p.wins}</td><td><b>${p.points}</b></td></tr>`).join('')}</tbody></table></div>`}
@@ -73,6 +87,67 @@ function scheduleExportRows(){let arr=[['ID Match','Tanggal','Jam','Kategori','R
 function exportScheduleExcel(){downloadCSV(scheduleExportRows(),'Liga678-Jadwal.csv')}
 function exportSchedulePDF(){let rows=scheduleExportRows();let body=rows.slice(1).map(r=>`<tr>${r.map(v=>`<td>${h(v)}</td>`).join('')}</tr>`).join('');let w=window.open('','_blank');if(!w){alert('Popup diblokir. Izinkan popup untuk mencetak PDF.');return}w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Jadwal Liga 678</title><style>body{font:11px Arial;padding:16px}h1{margin-bottom:4px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #777;padding:5px;text-align:left}th{background:#ddd}@media print{@page{size:landscape;margin:10mm}}</style></head><body><h1>JADWAL PERTANDINGAN LIGA 678</h1><p>Dicetak: ${new Date().toLocaleString('id-ID')}</p><table><thead><tr>${rows[0].map(v=>`<th>${h(v)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table><script>window.onload=()=>window.print()<\/script></body></html>`);w.document.close()}
 function clearFilters(){render()}
+function historyPage(){
+  if(!window.adminHistoryAccess){
+    return `<div class="card">
+      <h2>Riwayat Perubahan Skor</h2>
+      <div class="empty">Silakan login menggunakan akun Admin untuk melihat riwayat.</div>
+    </div>`;
+  }
+
+  const entries=Object.entries(window.scoreHistoryData||{})
+    .map(([key,value])=>({...value,_key:key}))
+    .sort((a,b)=>Number(b.updatedAt||0)-Number(a.updatedAt||0));
+
+  if(!entries.length){
+    return `<div id="historyList" class="card">
+      <h2>Riwayat Perubahan Skor</h2>
+      <div class="empty">Belum ada riwayat perubahan skor.</div>
+    </div>`;
+  }
+
+  return `<div id="historyList">
+    <div class="sectionhead">
+      <h2>Riwayat Perubahan Skor</h2>
+      <span class="pill">${entries.length} catatan</span>
+    </div>
+    ${entries.map(x=>{
+      const m=state.matches.find(v=>v.id===x.matchId);
+      const oldScore=(x.oldSets||[])
+        .map((s,i)=>`Set ${i+1}: ${s.a}-${s.b}`).join(' · ')||'Belum ada skor';
+      const newScore=(x.newSets||[])
+        .map((s,i)=>`Set ${i+1}: ${s.a}-${s.b}`).join(' · ')||'Skor direset';
+      const action=x.action==='reset'?'Reset skor':
+        x.action==='umpire_submit'?'Input oleh Umpire':'Input / perubahan skor';
+      const date=x.updatedAt
+        ?new Date(Number(x.updatedAt)).toLocaleString('id-ID')
+        :'Waktu tidak tersedia';
+
+      return `<div class="card">
+        <div class="sectionhead">
+          <div>
+            <b>${h(x.matchId||'-')}</b>
+            <div class="matchmeta">
+              ${m?'Kategori '+h(m.cat)+' · Round '+h(m.round):'Pertandingan'}
+              ${m?' · '+h(player(m.p1).name)+' vs '+h(player(m.p2).name):''}
+            </div>
+          </div>
+          <span class="pill">${h(action)}</span>
+        </div>
+        <div class="muted">Skor sebelumnya</div>
+        <div>${h(oldScore)}</div>
+        <div class="muted" style="margin-top:10px">Skor terbaru</div>
+        <b>${h(newScore)}</b>
+        <div class="matchmeta" style="margin-top:12px">
+          ${h(date)}<br>
+          Pelaksana: ${h(x.updatedByRole||'-')}<br>
+          Akun: ${h(x.updatedByEmail||x.updatedBy||'-')}
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
 function scorePage(){let filter=document.getElementById('scorecat')?.value||'all',status=document.getElementById('scorestatus')?.value||'all',list=state.matches.filter(m=>(filter==='all'||m.cat===filter)&&(status==='all'||(status==='done'?!!outcome(m):!outcome(m))));return `<div class="sectionhead"><h2>Input Skor per Set</h2><div class="row"><button onclick="exportResultsExcel()">Export Hasil Excel</button><button onclick="exportResultsPDF()">Export Hasil PDF</button><select id="scorecat" onchange="render()"><option value="all">Semua kategori</option><option value="A">Kategori A</option><option value="B">Kategori B</option></select><select id="scorestatus" onchange="render()"><option value="all">Semua status</option><option value="pending">Belum selesai</option><option value="done">Selesai</option></select></div></div><div class="muted">Isi skor set, lalu klik Simpan. Pemenang adalah pemain pertama yang mencapai 3 set. Gunakan maksimal 5 set.</div>${list.map(m=>scoreCard(m)).join('')}` }
 function scoreCard(m){let sets=m.sets||[];return `<div class="card"><div class="sectionhead"><div><b>${m.id}</b> · ${m.cat} · ${m.date} ${m.start||''}<div class="matchmeta">Round ${m.round}</div></div>${outcome(m)?'<span class="pill done">Selesai</span>':'<span class="pill">Belum selesai</span>'}</div><div class="grid"><div><b>${h(player(m.p1).name)}</b><div class="muted">${m.p1}</div></div><div><b>${h(player(m.p2).name)}</b><div class="muted">${m.p2}</div></div></div><div class="row" style="margin-top:12px;align-items:flex-start"><div class="muted">Set:</div>${[0,1,2,3,4].map(i=>`<div class="scoreinputs"><input type="number" min="0" max="99" id="${m.id}_a${i}" value="${sets[i]?.a??''}" placeholder="0"><span>:</span><input type="number" min="0" max="99" id="${m.id}_b${i}" value="${sets[i]?.b??''}" placeholder="0"></div>`).join('')}</div><div class="row" style="margin-top:12px"><button class="primary" onclick="saveScore('${m.id}')">Simpan skor</button><button class="danger small" onclick="resetScore('${m.id}')">Reset</button>${outcome(m)?`<span class="pill done">Set ${outcome(m).wa}–${outcome(m).wb}</span>`:''}</div></div>`}
 
