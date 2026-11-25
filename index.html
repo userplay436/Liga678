@@ -75,8 +75,86 @@ function exportSchedulePDF(){let rows=scheduleExportRows();let body=rows.slice(1
 function clearFilters(){render()}
 function scorePage(){let filter=document.getElementById('scorecat')?.value||'all',status=document.getElementById('scorestatus')?.value||'all',list=state.matches.filter(m=>(filter==='all'||m.cat===filter)&&(status==='all'||(status==='done'?!!outcome(m):!outcome(m))));return `<div class="sectionhead"><h2>Input Skor per Set</h2><div class="row"><button onclick="exportResultsExcel()">Export Hasil Excel</button><button onclick="exportResultsPDF()">Export Hasil PDF</button><select id="scorecat" onchange="render()"><option value="all">Semua kategori</option><option value="A">Kategori A</option><option value="B">Kategori B</option></select><select id="scorestatus" onchange="render()"><option value="all">Semua status</option><option value="pending">Belum selesai</option><option value="done">Selesai</option></select></div></div><div class="muted">Isi skor set, lalu klik Simpan. Pemenang adalah pemain pertama yang mencapai 3 set. Gunakan maksimal 5 set.</div>${list.map(m=>scoreCard(m)).join('')}` }
 function scoreCard(m){let sets=m.sets||[];return `<div class="card"><div class="sectionhead"><div><b>${m.id}</b> · ${m.cat} · ${m.date} ${m.start||''}<div class="matchmeta">Round ${m.round}</div></div>${outcome(m)?'<span class="pill done">Selesai</span>':'<span class="pill">Belum selesai</span>'}</div><div class="grid"><div><b>${h(player(m.p1).name)}</b><div class="muted">${m.p1}</div></div><div><b>${h(player(m.p2).name)}</b><div class="muted">${m.p2}</div></div></div><div class="row" style="margin-top:12px;align-items:flex-start"><div class="muted">Set:</div>${[0,1,2,3,4].map(i=>`<div class="scoreinputs"><input type="number" min="0" max="99" id="${m.id}_a${i}" value="${sets[i]?.a??''}" placeholder="0"><span>:</span><input type="number" min="0" max="99" id="${m.id}_b${i}" value="${sets[i]?.b??''}" placeholder="0"></div>`).join('')}</div><div class="row" style="margin-top:12px"><button class="primary" onclick="saveScore('${m.id}')">Simpan skor</button><button class="danger small" onclick="resetScore('${m.id}')">Reset</button>${outcome(m)?`<span class="pill done">Set ${outcome(m).wa}–${outcome(m).wb}</span>`:''}</div></div>`}
-function saveScore(id){let m=state.matches.find(x=>x.id===id);let ss=[];for(let i=0;i<5;i++){let a=document.getElementById(id+'_a'+i).value,b=document.getElementById(id+'_b'+i).value;if(a===''&&b==='')continue;if(a===''||b===''||Number(a)===Number(b))return alert('Skor set harus lengkap dan tidak boleh seri.');let aa=Number(a),bb=Number(b);if(Math.max(aa,bb)<11||Math.abs(aa-bb)<2)return alert('Set harus mencapai minimal 11 poin dan unggul 2 (contoh 11-9 atau 12-10).');ss.push({a:aa,b:bb})}let winsA=ss.filter(s=>s.a>s.b).length,winsB=ss.filter(s=>s.b>s.a).length;if(winsA>3||winsB>3)return alert('Set kemenangan tidak bisa melebihi 3.');if(winsA===3&&winsB>=3||winsB===3&&winsA>=3)return alert('Skor set tidak valid.');if(winsA===3||winsB===3){if(ss.length<3||ss.length>5)return alert('Jumlah set tidak valid.');}else if(ss.length===5)return alert('Set 5 harus menghasilkan pemenang 3 set.');m.sets=ss;m.status=(winsA===3||winsB===3)?'completed':'scheduled';save();render()}
-function resetScore(id){let m=state.matches.find(x=>x.id===id);m.sets=[];m.status='scheduled';save();render()}
+
+async function saveScore(id){
+  let m=state.matches.find(x=>x.id===id);
+  if(!m)return alert('Pertandingan tidak ditemukan');
+
+  let ss=[];
+  for(let i=0;i<5;i++){
+    let a=document.getElementById(id+'_a'+i).value;
+    let b=document.getElementById(id+'_b'+i).value;
+
+    if(a===''&&b==='')continue;
+    if(a===''||b===''||Number(a)===Number(b))
+      return alert('Skor set harus lengkap dan tidak boleh seri.');
+
+    let aa=Number(a),bb=Number(b);
+    if(Math.max(aa,bb)<11||Math.abs(aa-bb)<2)
+      return alert('Set harus mencapai minimal 11 poin dan unggul 2.');
+
+    ss.push({a:aa,b:bb});
+  }
+
+  let winsA=ss.filter(s=>s.a>s.b).length;
+  let winsB=ss.filter(s=>s.b>s.a).length;
+
+  if(winsA>3||winsB>3)
+    return alert('Set kemenangan tidak bisa melebihi 3.');
+
+  if((winsA===3&&winsB>=3)||(winsB===3&&winsA>=3))
+    return alert('Skor set tidak valid.');
+
+  if(winsA===3||winsB===3){
+    if(ss.length<3||ss.length>5)
+      return alert('Jumlah set tidak valid.');
+  }else if(ss.length===5){
+    return alert('Set 5 harus menghasilkan pemenang 3 set.');
+  }
+
+  const oldSets=JSON.parse(JSON.stringify(m.sets||[]));
+  const newStatus=(winsA===3||winsB===3)?'completed':'scheduled';
+
+  try{
+    if(!window.cloudScoreUpdate)
+      throw new Error('Fungsi riwayat skor belum tersedia.');
+
+    await window.cloudScoreUpdate(id,oldSets,ss,newStatus,'save');
+
+    m.sets=ss;
+    m.status=newStatus;
+    save(false);
+    render();
+    alert('Skor berhasil disimpan dan riwayat perubahan tercatat.');
+  }catch(e){
+    alert('Gagal menyimpan skor: '+e.message);
+  }
+}
+
+async function resetScore(id){
+  let m=state.matches.find(x=>x.id===id);
+  if(!m)return alert('Pertandingan tidak ditemukan');
+
+  if(!confirm('Yakin ingin mereset skor pertandingan ini?'))return;
+
+  const oldSets=JSON.parse(JSON.stringify(m.sets||[]));
+
+  try{
+    if(!window.cloudScoreUpdate)
+      throw new Error('Fungsi riwayat skor belum tersedia.');
+
+    await window.cloudScoreUpdate(id,oldSets,[],'scheduled','reset');
+
+    m.sets=[];
+    m.status='scheduled';
+    save(false);
+    render();
+
+    alert('Skor berhasil direset dan riwayat perubahan tercatat.');
+  }catch(e){
+    alert('Gagal mereset skor: '+e.message);
+  }
+}
 function standPage(){return `<div class="sectionhead"><h2>Klasemen & Laporan</h2><div class="row"><button onclick="exportCSV('standings')">Export Klasemen Excel (CSV)</button><button onclick="exportCSV('matches')">Export Hasil Excel (CSV)</button><button onclick="printReport()">Cetak / PDF</button><button onclick="openTV()">Tampilan TV</button></div></div><div class="card"><h2>Kategori A</h2>${standTable('A')}</div><div class="card"><h2>Kategori B</h2>${standTable('B')}</div><div class="muted">Tie-break otomatis: poin klasemen, selisih set, selisih poin set. Head-to-head belum digunakan sebagai tie-break otomatis.</div>`}
 function standTable(c){let rows=standings(c);return `<div class="tablewrap"><table><thead><tr><th>Rank</th><th>Peserta</th><th>Main</th><th>Menang</th><th>Kalah</th><th>Set +</th><th>Set -</th><th>Selisih</th><th>Poin</th></tr></thead><tbody>${rows.map((p,i)=>`<tr><td><b>${i+1}</b></td><td>${h(p.name)}</td><td>${p.played}</td><td>${p.wins}</td><td>${p.loss}</td><td>${p.setsw}</td><td>${p.setsl}</td><td>${p.setdiff>0?'+':''}${p.setdiff}</td><td><b>${p.points}</b></td></tr>`).join('')}</tbody></table></div>`}
 function statsPage(){return `<div class="sectionhead"><h2>Statistik Performa</h2><select id="statcat" onchange="render()"><option>A</option><option>B</option></select></div><div class="card"><canvas id="chart" width="900" height="280"></canvas></div><div class="card"><div class="tablewrap"><table><thead><tr><th>Pemain</th><th>Main</th><th>Menang</th><th>Kalah</th><th>Persentase</th><th>Poin</th></tr></thead><tbody>${statRows()}</tbody></table></div></div>`}
