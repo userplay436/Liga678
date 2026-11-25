@@ -417,7 +417,19 @@ import {getApp} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js
 import {getDatabase,ref,get,onValue,update,push} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 if(new URLSearchParams(location.search).get('view')==='umpire'){
- const auth=getAuth(getApp()),db=getDatabase(getApp()),mainRef=ref(db,'liga678/data');let league=null,user=null;
+ let auth,db,mainRef,league=null,user=null;
+
+try{
+  const app=getApp();
+  auth=getAuth(app);
+  db=getDatabase(app);
+  mainRef=ref(db,'liga678/data');
+}catch(e){
+  document.getElementById('uStatus').textContent=
+    'Gagal inisialisasi Firebase: '+e.code+' | '+e.message;
+  console.error('UMPIRЕ FIREBASE INIT ERROR:',e);
+  throw e;
+}
  const $=id=>document.getElementById(id),escapeHtml=s=>String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
  onValue(mainRef,s=>{league=s.val();populate()},e=>$('uStatus').textContent='Gagal membaca jadwal: '+e.message);
  function player(id){return league?.players?.find(p=>p.id===id)?.name||id}
@@ -489,13 +501,15 @@ if(new URLSearchParams(location.search).get('view')==='umpire'){
 
     alert('Skor resmi berhasil disimpan. Riwayat perubahan juga tercatat.');
   }catch(e){
-  console.error('DETAIL FIREBASE:', {
-    code: e.code,
-    message: e.message,
-    uid: user?.uid
-  });
-  alert('Gagal menyimpan: '+e.code+' | '+e.message);
-}
+    console.error('DETAIL FIREBASE:', {
+      code: e.code,
+      message: e.message,
+      uid: user?.uid
+    });
+    alert('Gagal menyimpan: '+e.code+' | '+e.message);
+  }
+};
+
 // LOGIN UMPIRE
 $('uLoginBtn').onclick=async()=>{
   const email=$('uEmail').value.trim();
