@@ -268,8 +268,71 @@ if(new URLSearchParams(location.search).get('view')==='umpire'){
  function addSet(a='',b=''){let n=$('uScoreRows').children.length+1;if(n>5)return alert('Maksimal 5 set');let row=document.createElement('div');row.style.cssText='display:flex;gap:10px;align-items:center;margin:12px 0';row.innerHTML=`<label>Set ${n}</label><input type="number" min="0" max="99" placeholder="Skor A" class="ua" value="${a}"><span>–</span><input type="number" min="0" max="99" placeholder="Skor B" class="ub" value="${b}"><button type="button" class="small">Hapus</button>`;row.querySelector('button').onclick=()=>{row.remove();renumber()};$('uScoreRows').append(row)}
  function renumber(){[...$('uScoreRows').children].forEach((r,i)=>r.querySelector('label').textContent='Set '+(i+1))}
  $('uAddSet').onclick=()=>addSet();
- $('uSubmit').onclick=async()=>{if(!user)return alert('Login terlebih dahulu');let m=league?.matches?.find(x=>x.id===$('uMatch').value);if(!m)return alert('Pertandingan tidak ditemukan');let ss=[...$('uScoreRows').children].map(r=>({a:Number(r.querySelector('.ua').value),b:Number(r.querySelector('.ub').value)}));if(ss.length<3||ss.length>5||ss.some(s=>!Number.isFinite(s.a)||!Number.isFinite(s.b)||s.a===s.b||Math.max(s.a,s.b)<11||Math.abs(s.a-s.b)<2))return alert('Isi 3–5 set lengkap. Set harus minimal 11 dan unggul 2.');let wa=ss.filter(s=>s.a>s.b).length,wb=ss.filter(s=>s.b>s.a).length;if((wa!==3&&wb!==3)||ss.length<3||ss.length>5)return alert('Skor harus menghasilkan pemenang tepat 3 set (best of 5).');if((m.sets||[]).length>=3&&!confirm('Pertandingan ini sudah memiliki skor. Timpa skor resmi yang ada?'))return;let idx=league.matches.findIndex(x=>x.id===m.id);if(idx<0)return alert('Indeks pertandingan tidak ditemukan');let official={sets:ss,status:'completed',scoreUpdatedAt:Date.now(),scoreUpdatedBy:user.uid,scoreUpdatedByEmail:user.email||''};try{await update(ref(db,`liga678/data/matches/${idx}`),official);$('uStatus').textContent='Skor resmi tersimpan';$('uScoreRows').innerHTML='';for(let i=0;i<3;i++)addSet();alert('Skor resmi berhasil disimpan. Dashboard dan TV/OBS akan tersinkron.')}catch(e){alert('Gagal menyimpan skor resmi: '+e.message)}};
- $('uLoginBtn').onclick=async()=>{try{await signInWithEmailAndPassword(auth,$('uEmail').value.trim(),$('uPass').value)}catch(e){$('uStatus').textContent='Login gagal: '+e.message}};$('uLogout').onclick=()=>signOut(auth);onAuthStateChanged(auth,u=>{user=u;$('uLogin').style.display=u?'none':'block';$('uLogout').style.display=u?'inline-block':'none';$('uPanel').style.display=u?'block':'none';$('uStatus').textContent=u?'Login umpire: '+(u.email||u.uid):'Belum login';if(u){$('uScoreRows').innerHTML='';for(let i=0;i<3;i++)addSet()}});
-}
+ $('uSubmit').onclick=async()=>{
+  if(!user)return alert('Login terlebih dahulu');
+
+  let m=league?.matches?.find(x=>x.id===$('uMatch').value);
+  if(!m)return alert('Pertandingan tidak ditemukan');
+
+  let ss=[...$('uScoreRows').children].map(r=>({
+    a:Number(r.querySelector('.ua').value),
+    b:Number(r.querySelector('.ub').value)
+  }));
+
+  if(ss.length<3||ss.length>5||
+    ss.some(s=>!Number.isFinite(s.a)||!Number.isFinite(s.b)||
+    s.a===s.b||Math.max(s.a,s.b)<11||Math.abs(s.a-s.b)<2))
+    return alert('Isi 3–5 set lengkap. Set harus minimal 11 dan unggul 2.');
+
+  let wa=ss.filter(s=>s.a>s.b).length;
+  let wb=ss.filter(s=>s.b>s.a).length;
+
+  if((wa!==3&&wb!==3)||ss.length<3||ss.length>5)
+    return alert('Skor harus menghasilkan pemenang tepat 3 set (best of 5).');
+
+  if((m.sets||[]).length>=3&&
+    !confirm('Pertandingan ini sudah memiliki skor. Timpa skor resmi yang ada?'))
+    return;
+
+  let idx=league.matches.findIndex(x=>x.id===m.id);
+  if(idx<0)return alert('Indeks pertandingan tidak ditemukan');
+
+  const oldSets=JSON.parse(JSON.stringify(m.sets||[]));
+  const now=Date.now();
+  const historyKey=push(ref(db,'liga678/scoreHistory')).key;
+
+  const historyEntry={
+    matchId:m.id,
+    oldSets,
+    newSets:ss,
+    action:'umpire_submit',
+    updatedBy:user.uid,
+    updatedByEmail:user.email||'',
+    updatedByRole:'umpire',
+    updatedAt:now
+  };
+
+  const updates={};
+
+  updates[`liga678/data/matches/${idx}/sets`]=ss;
+  updates[`liga678/data/matches/${idx}/status`]='completed';
+  updates[`liga678/data/matches/${idx}/scoreUpdatedAt`]=now;
+  updates[`liga678/data/matches/${idx}/scoreUpdatedBy`]=user.uid;
+  updates[`liga678/data/matches/${idx}/scoreUpdatedByEmail`]=user.email||'';
+  updates[`liga678/scoreHistory/${historyKey}`]=historyEntry;
+
+  try{
+    await update(ref(db),updates);
+
+    $('uStatus').textContent='Skor resmi dan riwayat berhasil tersimpan';
+    $('uScoreRows').innerHTML='';
+    for(let i=0;i<3;i++)addSet();
+
+    alert('Skor resmi berhasil disimpan. Riwayat perubahan juga tercatat.');
+  }catch(e){
+    alert('Gagal menyimpan skor dan riwayat: '+e.message);
+  }
+};
+
 </script>
 </body></html>
