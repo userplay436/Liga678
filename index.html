@@ -255,7 +255,7 @@ window.cloudScoreUpdate = async (matchId, oldSets, newSets, newStatus, action) =
 <script>if(new URLSearchParams(location.search).get('view')==='umpire'){document.getElementById('umpireRoot').style.display='block';document.querySelector('header').style.display='none';document.querySelector('nav').style.display='none';document.querySelector('main').style.display='none';document.querySelector('footer').style.display='none';document.querySelector('#tv').style.display='none';document.querySelectorAll('body>div').forEach(x=>{if(x.id!=='umpireRoot'&&x.id!=='tv'&&x.contains(document.getElementById('cloudstatus')))x.style.display='none'})}</script>
 <script type="module">
 import {getApp} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import {getDatabase,ref,get,onValue,update} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+import {getDatabase,ref,get,onValue,update,push} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 if(new URLSearchParams(location.search).get('view')==='umpire'){
  const auth=getAuth(getApp()),db=getDatabase(getApp()),mainRef=ref(db,'liga678/data');let league=null,user=null;
@@ -333,6 +333,57 @@ if(new URLSearchParams(location.search).get('view')==='umpire'){
     alert('Gagal menyimpan skor dan riwayat: '+e.message);
   }
 };
+
+// LOGIN UMPIRE
+$('uLoginBtn').onclick=async()=>{
+  const email=$('uEmail').value.trim();
+  const password=$('uPass').value;
+
+  if(!email||!password){
+    $('uStatus').textContent='Email dan password wajib diisi';
+    return;
+  }
+
+  $('uLoginBtn').disabled=true;
+  $('uStatus').textContent='Sedang login...';
+
+  try{
+    await signInWithEmailAndPassword(auth,email,password);
+    $('uStatus').textContent='Login berhasil';
+  }catch(e){
+    $('uStatus').textContent='Login gagal: '+e.message;
+  }finally{
+    $('uLoginBtn').disabled=false;
+  }
+};
+
+// LOGOUT UMPIRE
+$('uLogout').onclick=async()=>{
+  try{
+    await signOut(auth);
+    $('uStatus').textContent='Berhasil logout';
+  }catch(e){
+    $('uStatus').textContent='Logout gagal: '+e.message;
+  }
+};
+
+// DETEKSI STATUS LOGIN
+onAuthStateChanged(auth,u=>{
+  user=u;
+
+  if(u){
+    $('uLogin').style.display='none';
+    $('uPanel').style.display='block';
+    $('uLogout').style.display='inline-block';
+    $('uStatus').textContent='Login sebagai: '+(u.email||'Umpire');
+    populate();
+  }else{
+    $('uLogin').style.display='block';
+    $('uPanel').style.display='none';
+    $('uLogout').style.display='none';
+    $('uStatus').textContent='Belum login';
+  }
+});
 
 </script>
 </body></html>
