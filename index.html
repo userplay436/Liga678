@@ -260,17 +260,20 @@ function settingsPage(){
     </div>
   `;
 }
+function fieldEvidenceEntries(){
+  return state.matches.flatMap((match,matchIndex)=>
+    Object.entries(match.evidence||{}).map(([key,value])=>({...value,_key:key,_matchIndex:matchIndex,_matchId:match.id}))
+  ).sort((a,b)=>Number(b.uploadedAt||0)-Number(a.uploadedAt||0));
+}
 function fieldEvidencePage(){
   if(!window.adminHistoryAccess)return `<div class="card"><h2>Bukti Foto Lapangan</h2><div class="empty">Halaman ini hanya untuk Admin.</div></div>`;
-  const entries=Object.entries(window.fieldEvidenceData||{})
-    .map(([key,value])=>({...value,_key:key}))
-    .sort((a,b)=>Number(b.uploadedAt||0)-Number(a.uploadedAt||0));
+  const entries=fieldEvidenceEntries();
   const cards=entries.map(item=>{
-    const match=state.matches.find(m=>m.id===item.matchId);
+    const match=state.matches[item._matchIndex];
     const matchLabel=match?`${match.id} · ${player(match.p1).name} vs ${player(match.p2).name}`:item.matchId||'Pertandingan tidak ditemukan';
     const uploadedAt=item.uploadedAt?new Date(Number(item.uploadedAt)).toLocaleString('id-ID'):'Waktu tidak tersedia';
     const image=item.imageData||item.downloadURL||'';
-    return `<article class="evidence-item"><a href="${h(image||'#')}" target="_blank" rel="noopener"><img src="${h(image)}" alt="Bukti ${h(matchLabel)}" loading="lazy"></a><div class="evidence-meta"><b>${h(matchLabel)}</b><br>${h(item.originalName||'Foto lapangan')}<br>${h(uploadedAt)}<br>Pengunggah: ${h(item.uploadedByEmail||item.uploadedBy||'Tidak diketahui')}</div><button class="danger small" onclick="deleteFieldEvidence('${h(item._key)}')" title="Hapus foto">Hapus foto</button></article>`;
+    return `<article class="evidence-item"><a href="${h(image||'#')}" target="_blank" rel="noopener"><img src="${h(image)}" alt="Bukti ${h(matchLabel)}" loading="lazy"></a><div class="evidence-meta"><b>${h(matchLabel)}</b><br>${h(item.originalName||'Foto lapangan')}<br>${h(uploadedAt)}<br>Pengunggah: ${h(item.uploadedByEmail||item.uploadedBy||'Tidak diketahui')}</div><button class="danger small" onclick="deleteFieldEvidence(${item._matchIndex},'${h(item._key)}')" title="Hapus foto">Hapus foto</button></article>`;
   }).join('');
   return `<div class="sectionhead"><h2>Bukti Foto Lapangan</h2><button onclick="refreshFieldEvidence()" title="Muat ulang daftar foto">Muat ulang</button></div><div class="muted">Foto yang diunggah umpire untuk dokumentasi pertandingan.</div><div class="muted" id="fieldEvidenceStatus" style="margin-top:8px">${h(window.fieldEvidenceStatus||'Memuat bukti foto…')}</div>${entries.length?`<div class="evidence-grid">${cards}</div>`:''}`;
 }
@@ -629,11 +632,10 @@ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from
  try{
  const app=initializeApp(firebaseConfig),db=getDatabase(app),auth=getAuth(app),dataRef=ref(db,'liga678/data'),wallRef=ref(db,'liga678/wallpaper');
  let suppress=false,adminUid="HT1kEOfLfxUgE4VTlY8MVZ0HAsw1";
-let stopScoreHistory=null,stopFieldEvidence=null;
+let stopScoreHistory=null;
 
 window.scoreHistoryData={};
 window.adminHistoryAccess=false;
-window.fieldEvidenceData={};
 window.fieldEvidenceStatus='Memuat bukti foto…';
 window.cloudScoreUpdate = async (matchId, oldSets, newSets, newStatus, action) => {
   const user = auth.currentUser;
@@ -686,22 +688,26 @@ window.refreshFieldEvidence=async()=>{
   window.fieldEvidenceStatus='Memuat bukti foto…';
   window.renderDashboard?.();
   try{
-    const snapshot=await get(ref(db,'liga678/evidence'));
-    window.fieldEvidenceData=snapshot.exists()?snapshot.val():{};
-    window.fieldEvidenceStatus=Object.keys(window.fieldEvidenceData).length?`${Object.keys(window.fieldEvidenceData).length} foto ditemukan.`:'Belum ada foto bukti.';
+    const snapshot=await get(dataRef);
+    if(!snapshot.exists())throw new Error('Data kompetisi belum tersedia.');
+    window.cloudApply(snapshot.val());
+    const count=fieldEvidenceEntries().length;
+    window.fieldEvidenceStatus=count?`${count} foto ditemukan.`:'Belum ada foto bukti.';
   }catch(error){
     window.fieldEvidenceStatus='Gagal memuat foto: '+error.message;
   }
   if(window.getDashboardPage?.()==='bukti')window.renderDashboard?.();
 };
 
-window.deleteFieldEvidence=async key=>{
+window.deleteFieldEvidence=async(matchIndex,key)=>{
   if(auth.currentUser?.uid!==adminUid){alert('Hanya Admin yang dapat menghapus foto.');return}
-  const item=window.fieldEvidenceData?.[key];
+  const match=state.matches[matchIndex],item=match?.evidence?.[key];
   if(!item)return alert('Data foto tidak ditemukan. Muat ulang daftar foto.');
   if(!confirm('Hapus foto bukti ini secara permanen?'))return;
   try{
-    await set(ref(db,`liga678/evidence/${key}`),null);
+    await set(ref(db,`liga678/data/matches/${matchIndex}/evidence/${key}`),null);
+    delete match.evidence[key];
+    if(!Object.keys(match.evidence).length)delete match.evidence;
     window.fieldEvidenceStatus='Foto bukti berhasil dihapus.';
   }catch(error){
     window.fieldEvidenceStatus='Gagal menghapus foto: '+error.message;
@@ -743,24 +749,8 @@ window.deleteFieldEvidence=async key=>{
         e=>console.error('Riwayat skor:',e)
       );
 
-      if(stopFieldEvidence)stopFieldEvidence();
-      stopFieldEvidence=onValue(
-        ref(db,'liga678/evidence'),
-        snap=>{
-          window.fieldEvidenceData=snap.exists()?snap.val():{};
-          window.fieldEvidenceStatus=Object.keys(window.fieldEvidenceData).length?`${Object.keys(window.fieldEvidenceData).length} foto ditemukan.`:'Belum ada foto bukti.';
-          if(window.getDashboardPage?.()==='bukti')window.renderDashboard?.();
-        },
-        error=>{
-          window.fieldEvidenceStatus='Gagal memuat foto: '+error.message;
-          if(window.getDashboardPage?.()==='bukti')window.renderDashboard?.();
-        }
-      );
-
     }else{
       window.adminHistoryAccess=false;
-      if(stopFieldEvidence){stopFieldEvidence();stopFieldEvidence=null}
-      window.fieldEvidenceData={};
       if(stopScoreHistory){
         stopScoreHistory();
         stopScoreHistory=null;
@@ -771,8 +761,6 @@ window.deleteFieldEvidence=async key=>{
     document.getElementById('authstatus').textContent='Belum login';
 
     window.adminHistoryAccess=false;
-    if(stopFieldEvidence){stopFieldEvidence();stopFieldEvidence=null}
-    window.fieldEvidenceData={};
 
     if(stopScoreHistory){
       stopScoreHistory();
@@ -849,7 +837,7 @@ window.factoryResetCloud = async (defaultState, defaultWallpaper) => {
 <script>if(new URLSearchParams(location.search).get('view')==='umpire'){document.getElementById('umpireRoot').style.display='block';document.querySelector('header').style.display='none';document.querySelector('nav').style.display='none';document.querySelector('main').style.display='none';document.querySelector('footer').style.display='none';document.querySelector('#tv').style.display='none';document.querySelectorAll('body>div').forEach(x=>{if(x.id!=='umpireRoot'&&x.id!=='tv'&&x.contains(document.getElementById('cloudstatus')))x.style.display='none'})}</script>
 <script type="module">
 import {getApp} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import {getDatabase,ref,get,onValue,update,push,set,query,orderByChild,equalTo} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+import {getDatabase,ref,get,onValue,update,push,set} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 if(new URLSearchParams(location.search).get('view')==='umpire'){
  let auth,db,mainRef,league=null,user=null;
@@ -866,7 +854,7 @@ try{
   throw e;
 }
  const $=id=>document.getElementById(id),escapeHtml=s=>String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
- let activeMatchId='', renderedScoreVersion='', scoreFormDirty=false,evidenceData={},stopEvidence=null,evidenceMatchId='';
+ let activeMatchId='', renderedScoreVersion='', scoreFormDirty=false;
  const umpireNames={
   '422LBJJWwLVf9FIb8ROlMqIxw2r1':'UMPIRE 1',
   'D0s1j7T2UmToDwLeujumZTSdnwz1':'UMPIRE 2',
@@ -880,29 +868,12 @@ try{
  function renderUmpireEvidence(){
   const match=selectedMatch(),gallery=$('uEvidenceGallery');
   if(!match){gallery.innerHTML='';$('uEvidenceStatus').textContent='Pilih pertandingan terlebih dahulu.';return}
-  const entries=Object.entries(evidenceData||{}).map(([key,value])=>({...value,_key:key})).filter(item=>item.matchId===match.id).sort((a,b)=>Number(b.uploadedAt||0)-Number(a.uploadedAt||0));
+  const entries=Object.entries(match.evidence||{}).map(([key,value])=>({...value,_key:key})).sort((a,b)=>Number(b.uploadedAt||0)-Number(a.uploadedAt||0));
   $('uEvidenceStatus').textContent=entries.length?`${entries.length} foto untuk pertandingan ini.`:'Belum ada foto untuk pertandingan ini.';
   gallery.innerHTML=entries.map(item=>{const image=item.imageData||item.downloadURL||'';return `<article class="evidence-item"><a href="${escapeHtml(image||'#')}" target="_blank" rel="noopener"><img src="${escapeHtml(image)}" alt="Bukti ${escapeHtml(match.id)}" loading="lazy"></a><div class="evidence-meta">${escapeHtml(item.originalName||'Foto lapangan')}<br>${escapeHtml(item.uploadedAt?new Date(Number(item.uploadedAt)).toLocaleString('id-ID'):'Waktu tidak tersedia')}<br>Pengunggah: ${escapeHtml(item.uploadedByEmail||'Umpire')}</div></article>`}).join('');
  }
  function watchUmpireEvidence(){
-  const match=selectedMatch();
-  if(!user||!match){
-    if(stopEvidence){stopEvidence();stopEvidence=null}
-    evidenceMatchId='';
-    evidenceData={};
-    renderUmpireEvidence();
-    return;
-  }
-  if(stopEvidence&&evidenceMatchId===match.id)return;
-  if(stopEvidence)stopEvidence();
-  evidenceMatchId=match.id;
-  evidenceData={};
-  $('uEvidenceStatus').textContent='Memuat foto…';
-  $('uEvidenceGallery').innerHTML='';
-  stopEvidence=onValue(query(ref(db,'liga678/evidence'),orderByChild('matchId'),equalTo(match.id)),snap=>{
-    evidenceData=snap.exists()?snap.val():{};
-    renderUmpireEvidence();
-  },error=>{$('uEvidenceStatus').textContent='Gagal membaca foto: '+error.message});
+  renderUmpireEvidence();
  }
  function canUploadEvidence(){return !!user&&!!umpireNames[user.uid]}
  function populate(){
@@ -965,21 +936,25 @@ try{
   if(!['image/jpeg','image/png','image/webp'].includes(file.type))return alert('Gunakan foto JPG, PNG, atau WebP.');
   if(file.size>8*1024*1024)return alert('Ukuran foto maksimum 8 MB.');
   const button=$('uUploadEvidence'),status=$('uEvidenceStatus');
-  const evidenceKey=push(ref(db,'liga678/evidence')).key;
+  const matchIndex=league.matches.findIndex(item=>item.id===match.id);
+  if(matchIndex<0)return alert('Pertandingan tidak ditemukan di database.');
+  const evidencePath=`liga678/data/matches/${matchIndex}/evidence`;
+  const evidenceKey=push(ref(db,evidencePath)).key;
   button.disabled=true;
   status.textContent='Mengunggah foto…';
   try{
     const imageData=await compressEvidenceImage(file);
-    await set(ref(db,`liga678/evidence/${evidenceKey}`),{
+    const evidence={
       matchId:match.id,
-      storagePath:'',
-      downloadURL:'',
       imageData,
       originalName:file.name,
       uploadedBy:user.uid,
       uploadedByEmail:user.email||'',
       uploadedAt:Date.now()
-    });
+    };
+    await set(ref(db,`${evidencePath}/${evidenceKey}`),evidence);
+    match.evidence=match.evidence||{};
+    match.evidence[evidenceKey]=evidence;
     $('uEvidenceFile').value='';
     status.textContent='Foto berhasil diunggah.';
     renderUmpireEvidence();
@@ -1086,9 +1061,6 @@ onAuthStateChanged(auth,u=>{
     $('uPanel').style.display='none';
     $('uLogout').style.display='none';
     $('uStatus').textContent='Belum login';
-    if(stopEvidence){stopEvidence();stopEvidence=null}
-    evidenceData={};
-    evidenceMatchId='';
     $('uEvidenceGallery').innerHTML='';
     $('uEvidenceStatus').textContent='Login untuk melihat foto bukti.';
   }
