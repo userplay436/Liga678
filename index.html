@@ -133,7 +133,7 @@ function save(cloud=true){
   localStorage.setItem(STORAGE,JSON.stringify(state));
   if(cloud && window.cloudSave) window.cloudSave(state);
 }
-function cloudApply(x){state=x||makeState();if(typeof state.tvBlocked==='undefined')state.tvBlocked=false;if(!state.competitionTitle)state.competitionTitle='LIGA 678 · TABLE TENNIS LEAGUE 2026 / 2027';localStorage.setItem(STORAGE,JSON.stringify(state));applyCompetitionTitle();if(isTVMode())renderTVPublic();else render()}
+function cloudApply(x){const fallback=state&&Array.isArray(state.players)&&Array.isArray(state.matches)?state:makeState(),remote=x&&typeof x==='object'?x:{};state={...fallback,...remote,players:Array.isArray(remote.players)?remote.players:fallback.players,matches:Array.isArray(remote.matches)?remote.matches:fallback.matches};if(typeof state.tvBlocked==='undefined')state.tvBlocked=false;if(!state.competitionTitle)state.competitionTitle='LIGA 678 · TABLE TENNIS LEAGUE 2026 / 2027';localStorage.setItem(STORAGE,JSON.stringify(state));applyCompetitionTitle();if(isTVMode())renderTVPublic();else render()}
 function player(id){return state.players.find(p=>p.id===id)||{name:id}}
 function outcome(m){let a=0,b=0;for(let s of m.sets||[]){if(s.a>s.b)a++;else if(s.b>s.a)b++}return a>=3?{winner:m.p1,wa:a,wb:b}:b>=3?{winner:m.p2,wa:a,wb:b}:null}
 function standings(cat){
@@ -659,8 +659,8 @@ window.cloudScoreUpdate = async (matchId, oldSets, newSets, newStatus, action) =
  window.firebaseLogin=async()=>{try{await signInWithEmailAndPassword(auth,document.getElementById('adminemail').value.trim(),document.getElementById('adminpass').value);document.getElementById('authstatus').textContent='Login berhasil';}catch(e){document.getElementById('authstatus').textContent='Login gagal: '+e.message}};
  window.firebaseLogout=async()=>{try{await signOut(auth);document.getElementById('authstatus').textContent='Logout';}catch(e){document.getElementById('authstatus').textContent=e.message}};
  window.cloudSave=async data=>{if(suppress)return;if(!auth.currentUser||auth.currentUser.uid!==adminUid){document.getElementById('cloudstatus').textContent='Perubahan lokal saja · admin belum login';return;}try{await set(dataRef,data);document.getElementById('cloudstatus').textContent='Online · data tersimpan'}catch(e){document.getElementById('cloudstatus').textContent='Gagal menyimpan: '+e.message}};
- const snap=await get(dataRef);if(snap.exists()){window.cloudApply(snap.val());document.getElementById('cloudstatus').textContent='Data cloud dimuat'}else document.getElementById('cloudstatus').textContent='Database kosong · login admin untuk mengunggah data awal';
- onValue(dataRef,s=>{if(s.exists()){suppress=true;window.cloudApply(s.val());suppress=false;document.getElementById('cloudstatus').textContent='Online · tersinkron'}},e=>document.getElementById('cloudstatus').textContent='Koneksi error: '+e.message);
+ const snap=await get(dataRef);if(snap.exists()){const cloudData=snap.val();window.cloudApply(cloudData);document.getElementById('cloudstatus').textContent=Array.isArray(cloudData?.players)&&Array.isArray(cloudData?.matches)?'Data cloud dimuat':'Data cloud tidak lengkap · memakai daftar lokal'}else document.getElementById('cloudstatus').textContent='Database kosong · login admin untuk mengunggah data awal';
+ onValue(dataRef,s=>{if(s.exists()){const cloudData=s.val();suppress=true;window.cloudApply(cloudData);suppress=false;document.getElementById('cloudstatus').textContent=Array.isArray(cloudData?.players)&&Array.isArray(cloudData?.matches)?'Online · tersinkron':'Data cloud tidak lengkap · memakai daftar lokal'}},e=>document.getElementById('cloudstatus').textContent='Koneksi error: '+e.message);
  onAuthStateChanged(auth,async user=>{
   if(user){
     document.getElementById('authstatus').textContent=
