@@ -31,6 +31,12 @@ footer{color:var(--muted);text-align:center;padding:20px;font-size:12px}
 .evidence-item{min-width:0;border:1px solid var(--line);border-radius:10px;padding:10px;background:rgba(10,23,39,.7)}
 .evidence-item img{display:block;width:100%;height:180px;object-fit:cover;border-radius:7px;background:#0a1727}
 .evidence-meta{font-size:12px;color:var(--muted);line-height:1.5;margin:8px 0;overflow-wrap:anywhere}
+.evidence-preview{display:block;width:100%;padding:0;border:0;background:transparent;cursor:zoom-in}
+.evidence-preview:hover{border:0}
+#evidenceViewer{width:min(94vw,1100px);max-width:94vw;max-height:94vh;padding:12px;border:1px solid var(--line);border-radius:10px;background:#081321;color:var(--txt)}
+#evidenceViewer::backdrop{background:rgba(0,0,0,.82)}
+#evidenceViewer img{display:block;width:100%;height:auto;max-height:82vh;object-fit:contain;background:#081321}
+.evidence-viewer-head{display:flex;justify-content:flex-end;margin-bottom:8px}
 
 @media(max-width:700px){header{padding:14px}main{padding:12px}nav{padding:10px}.tvtitle{font-size:8vw}.tvtable{font-size:3vw}.tvtable th{font-size:2vw}.card{padding:12px}}
 @media(max-width:520px){#umpireRoot{padding:10px!important}#uScoreRows>div{grid-template-columns:48px minmax(45px,1fr) 12px minmax(45px,1fr) auto!important;gap:5px!important}#uScoreRows input{width:100%;min-width:0;padding:8px 4px}#uScoreRows button{padding:6px;font-size:11px}}
@@ -119,6 +125,7 @@ table{min-width:620px}#tv{padding:12px}#tv .tvhead{align-items:flex-start;gap:8p
 </style>
 </head>
 <body>
+<dialog id="evidenceViewer" onclick="if(event.target===this)closeEvidencePhoto()" aria-label="Pratinjau foto bukti"><div class="evidence-viewer-head"><button type="button" onclick="closeEvidencePhoto()" aria-label="Tutup foto">Tutup</button></div><img id="evidenceViewerImage" alt="Foto bukti lapangan"></dialog>
 <header><div><div class="brand">LIGA 678 · TABLE TENNIS LEAGUE 2026 / 2027</div><div class="subtitle">DASHBOARD KOMPETISI · TABLE TENNIS</div></div><div class="row"><button onclick="exportData()">Backup</button><button onclick="document.getElementById('importfile').click()">Restore</button><input id="importfile" type="file" class="hidden" accept=".json" onchange="importData(event)"></div></header>
 <nav id="nav"></nav><main id="app"></main><div style="max-width:1500px;margin:0 auto;padding:0 20px 20px"><div class="card"><b>Status Firebase:</b> <span id="cloudstatus">Menghubungkan…</span><div class="muted">Publik dapat membaca. Perubahan data hanya untuk admin yang login.</div><div class="row" style="margin-top:12px"><input id="adminemail" type="email" placeholder="Email admin"><input id="adminpass" type="password" placeholder="Password admin"><button class="primary" onclick="firebaseLogin()">Login admin</button><button onclick="firebaseLogout()">Logout</button><span id="authstatus" class="muted">Belum login</span></div></div></div><footer id="competitionFooter">LIGA 678 · Firebase Realtime Database · Cloud sync</footer>
 <div id="tv"><button class="tvclose" id="tvclosebtn" onclick="closeTV()">✕ Tutup TV</button><div class="tvhead"><div class="tvtitle">LIGA 678 · TABLE TENNIS LEAGUE 2026 / 2027</div><div id="tvdate"></div></div><div id="tvcontent"></div></div>
@@ -202,6 +209,8 @@ function standings(cat){
   return rows;
 }
 function h(s){return String(s??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]))}
+function openEvidencePhoto(src){const viewer=document.getElementById('evidenceViewer'),image=document.getElementById('evidenceViewerImage');if(!viewer||!src)return;image.src=src;if(typeof viewer.showModal==='function')viewer.showModal();else viewer.setAttribute('open','')}
+function closeEvidencePhoto(){const viewer=document.getElementById('evidenceViewer');if(viewer?.open)viewer.close();else viewer?.removeAttribute('open')}
 let current='dashboard';
 function competitionTitle(){return String(state?.competitionTitle||'LIGA 678 · TABLE TENNIS LEAGUE 2026 / 2027')}
 function applyCompetitionTitle(){
@@ -273,7 +282,7 @@ function fieldEvidencePage(){
     const matchLabel=match?`${match.id} · ${player(match.p1).name} vs ${player(match.p2).name}`:item.matchId||'Pertandingan tidak ditemukan';
     const uploadedAt=item.uploadedAt?new Date(Number(item.uploadedAt)).toLocaleString('id-ID'):'Waktu tidak tersedia';
     const image=item.imageData||item.downloadURL||'';
-    return `<article class="evidence-item"><a href="${h(image||'#')}" target="_blank" rel="noopener"><img src="${h(image)}" alt="Bukti ${h(matchLabel)}" loading="lazy"></a><div class="evidence-meta"><b>${h(matchLabel)}</b><br>${h(item.originalName||'Foto lapangan')}<br>${h(uploadedAt)}<br>Pengunggah: ${h(item.uploadedByEmail||item.uploadedBy||'Tidak diketahui')}</div><button class="danger small" onclick="deleteFieldEvidence(${item._matchIndex},'${h(item._key)}')" title="Hapus foto">Hapus foto</button></article>`;
+    return `<article class="evidence-item"><button class="evidence-preview" type="button" onclick="openEvidencePhoto(this.querySelector('img').src)" aria-label="Buka foto bukti"><img src="${h(image)}" alt="Bukti ${h(matchLabel)}" loading="lazy"></button><div class="evidence-meta"><b>${h(matchLabel)}</b><br>${h(item.originalName||'Foto lapangan')}<br>${h(uploadedAt)}<br>Pengunggah: ${h(item.uploadedByEmail||item.uploadedBy||'Tidak diketahui')}</div><button class="danger small" onclick="deleteFieldEvidence(${item._matchIndex},'${h(item._key)}')" title="Hapus foto">Hapus foto</button></article>`;
   }).join('');
   return `<div class="sectionhead"><h2>Bukti Foto Lapangan</h2><button onclick="refreshFieldEvidence()" title="Muat ulang daftar foto">Muat ulang</button></div><div class="muted">Foto yang diunggah umpire untuk dokumentasi pertandingan.</div><div class="muted" id="fieldEvidenceStatus" style="margin-top:8px">${h(window.fieldEvidenceStatus||'Memuat bukti foto…')}</div>${entries.length?`<div class="evidence-grid">${cards}</div>`:''}`;
 }
@@ -870,7 +879,7 @@ try{
   if(!match){gallery.innerHTML='';$('uEvidenceStatus').textContent='Pilih pertandingan terlebih dahulu.';return}
   const entries=Object.entries(match.evidence||{}).map(([key,value])=>({...value,_key:key})).sort((a,b)=>Number(b.uploadedAt||0)-Number(a.uploadedAt||0));
   $('uEvidenceStatus').textContent=entries.length?`${entries.length} foto untuk pertandingan ini.`:'Belum ada foto untuk pertandingan ini.';
-  gallery.innerHTML=entries.map(item=>{const image=item.imageData||item.downloadURL||'';return `<article class="evidence-item"><a href="${escapeHtml(image||'#')}" target="_blank" rel="noopener"><img src="${escapeHtml(image)}" alt="Bukti ${escapeHtml(match.id)}" loading="lazy"></a><div class="evidence-meta">${escapeHtml(item.originalName||'Foto lapangan')}<br>${escapeHtml(item.uploadedAt?new Date(Number(item.uploadedAt)).toLocaleString('id-ID'):'Waktu tidak tersedia')}<br>Pengunggah: ${escapeHtml(item.uploadedByEmail||'Umpire')}</div></article>`}).join('');
+  gallery.innerHTML=entries.map(item=>{const image=item.imageData||item.downloadURL||'';return `<article class="evidence-item"><button class="evidence-preview" type="button" onclick="openEvidencePhoto(this.querySelector('img').src)" aria-label="Buka foto bukti"><img src="${escapeHtml(image)}" alt="Bukti ${escapeHtml(match.id)}" loading="lazy"></button><div class="evidence-meta">${escapeHtml(item.originalName||'Foto lapangan')}<br>${escapeHtml(item.uploadedAt?new Date(Number(item.uploadedAt)).toLocaleString('id-ID'):'Waktu tidak tersedia')}<br>Pengunggah: ${escapeHtml(item.uploadedByEmail||'Umpire')}</div></article>`}).join('');
  }
  function watchUmpireEvidence(){
   renderUmpireEvidence();
