@@ -135,7 +135,7 @@ table{min-width:620px}#tv{padding:12px}#tv .tvhead{align-items:flex-start;gap:8p
 #tv .tv-mobile-list{display:none}
 #tv .tv-mobile-standings{display:block}
 #tv .tv-mobile-standings .tablewrap{overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
-#tv .tvtable-mobile{width:100%;min-width:820px!important;table-layout:fixed;font-size:13px;white-space:nowrap}
+#tv .tvtable-mobile{width:100%;min-width:660px!important;table-layout:fixed;font-size:12px;white-space:nowrap}
 #tv .tvtable-mobile th{font-size:11px}
 #tv .tvtable-mobile td{font-size:13px}
 #tv .tvtable-mobile th,#tv .tvtable-mobile td{padding:7px 4px;text-align:center}
@@ -143,18 +143,19 @@ table{min-width:620px}#tv{padding:12px}#tv .tvhead{align-items:flex-start;gap:8p
 #tv .tvtable-mobile th:nth-child(-n+3){z-index:4;background:#152b42}
 #tv .tvtable-mobile td:nth-child(-n+3){z-index:2}
 #tv .tvtable-mobile th:first-child,#tv .tvtable-mobile td:first-child{left:0}
-#tv .tvtable-mobile th:nth-child(2),#tv .tvtable-mobile td:nth-child(2){left:44px}
-#tv .tvtable-mobile th:nth-child(3),#tv .tvtable-mobile td:nth-child(3){left:106px;box-shadow:4px 0 7px rgba(0,0,0,.28)}
+#tv .tvtable-mobile th:nth-child(2),#tv .tvtable-mobile td:nth-child(2){left:36px}
+#tv .tvtable-mobile th:nth-child(3),#tv .tvtable-mobile td:nth-child(3){left:84px;box-shadow:4px 0 7px rgba(0,0,0,.28)}
 #tv .tvtable-mobile th:nth-child(3),#tv .tvtable-mobile td:nth-child(3){text-align:left}
-#tv .tvtable-mobile col.rank{width:44px}
-#tv .tvtable-mobile col.id{width:62px}
-#tv .tvtable-mobile col.name{width:160px}
-#tv .tvtable-mobile col.stat{width:5%}
-#tv .tvtable-mobile col.set{width:6%}
-#tv .tvtable-mobile col.delta{width:7%}
-#tv .tvtable-mobile col.point{width:7%}
-#tv .tvtable-mobile col.delta-point{width:7%}
-#tv .tvtable-mobile col.pts{width:6%}
+#tv .tvtable-mobile col.rank{width:36px}
+#tv .tvtable-mobile col.id{width:48px}
+#tv .tvtable-mobile col.name{width:120px}
+#tv .tvtable-mobile col.stat{width:36px}
+#tv .tvtable-mobile col.set{width:42px}
+#tv .tvtable-mobile col.delta{width:46px}
+#tv .tvtable-mobile col.point{width:44px}
+#tv .tvtable-mobile col.delta-point{width:48px}
+#tv .tvtable-mobile col.pts{width:40px}
+#tv .tv-mobile-standings::before{content:"Geser tabel ke samping untuk melihat statistik lainnya";display:block;margin:0 0 5px;color:var(--muted);font-size:11px}
 #tv .tv-mobile-player{overflow:hidden;text-overflow:ellipsis}
 #tv .tv-view-nav,#tv .tv-category-nav{gap:6px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}
 #tv .tv-view-nav button,#tv .tv-category-nav button{flex:0 0 auto;padding:8px 11px;font-size:13px}
